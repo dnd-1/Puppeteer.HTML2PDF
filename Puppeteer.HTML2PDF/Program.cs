@@ -16,7 +16,7 @@ builder.Services.Configure<ServiceProperties>(builder.Configuration.GetSection("
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DatabaseConnection")), ServiceLifetime.Singleton
+        options.UseSqlite(builder.Configuration.GetConnectionString("DatabaseConnection")), ServiceLifetime.Singleton
 );
 
 builder.Services.AddEndpointsApiExplorer();
@@ -27,7 +27,7 @@ builder.Services.AddLogging(logging => { logging.AddLog4Net(); });
 builder.Services.AddHostedService<PuppeteerConverterService>();
 
 builder.Services.Configure<QuartzOptions>(builder.Configuration.GetSection("Quartz"));
-                
+
 builder.Services.AddQuartz(quartz =>
 {
     quartz.UseMicrosoftDependencyInjectionJobFactory();
@@ -45,9 +45,8 @@ builder.Services.AddQuartz(quartz =>
         .WithCronSchedule(startDeleteCronExpression)
         .WithDescription("Job for delete old record from database")
     );
-                    
 });
-        
+
 builder.Services.AddQuartzServer(options =>
 {
     options.WaitForJobsToComplete = true;
@@ -64,11 +63,21 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+string outPathName = builder.Configuration.GetValue("ServiceProperties:OutPathName",
+    "out");
+
+string outFullPath = Path.Combine(Environment.CurrentDirectory, outPathName);
+
+if (!Directory.Exists(outFullPath))
+    Directory.CreateDirectory(outFullPath);
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(Environment.CurrentDirectory, "out")),
-    RequestPath = "/out"
+    
+    FileProvider = new PhysicalFileProvider(outFullPath), 
+    RequestPath = $"/{outPathName}"
+    
 });
 
 app.UseStaticFiles(new StaticFileOptions
@@ -78,8 +87,6 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = ""
 });
 
-
 app.MapControllers();
-
 
 app.Run();
